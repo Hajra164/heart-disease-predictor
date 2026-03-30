@@ -16,6 +16,7 @@ Build a binary classification model to predict whether a person is at risk of he
 ---
 
 <img width="1815" height="847" alt="h" src="https://github.com/user-attachments/assets/0fc450df-d593-4571-b1f2-28dd73758e0e" />
+<img width="1866" height="920" alt="predict" src="https://github.com/user-attachments/assets/2c5a2e7a-ff36-4ed6-9128-251855973433" />
 
 
 ## 📊 Dataset
@@ -35,6 +36,11 @@ Build a binary classification model to predict whether a person is at risk of he
 | Decision Tree | ~82% | ~86% |
 
 ---
+
+
+<img width="1872" height="918" alt="performance3" src="https://github.com/user-attachments/assets/a1ca59e1-a3f7-46d6-8061-154788e09a75" />
+
+<img width="1870" height="919" alt="about5" src="https://github.com/user-attachments/assets/b7300dc0-b2e2-4dba-8b5e-14d4e4a7d253" />
 
 ## 🗂️ Project Structure
 
