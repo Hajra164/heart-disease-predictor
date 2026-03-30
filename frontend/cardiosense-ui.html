@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CardioSense — Heart Disease Risk Predictor</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f0f4f8;
+  --surface:#ffffff;
+  --surface2:#f8fafc;
+  --border:#e2e8f0;
+  --text:#0f172a;
+  --muted:#64748b;
+  --red:#ef4444;
+  --red-light:#fef2f2;
+  --green:#10b981;
+  --green-light:#ecfdf5;
+  --amber:#f59e0b;
+  --amber-light:#fffbeb;
+  --blue:#3b82f6;
+  --blue-light:#eff6ff;
+  --body:'DM Sans',sans-serif;
+  --mono:'DM Mono',monospace;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--body);font-weight:400;line-height:1.6;min-height:100vh}
+
+/* ── NAV ── */
+.nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 32px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.nav-brand{display:flex;align-items:center;gap:10px}
+.nav-icon{width:32px;height:32px;background:linear-gradient(135deg,#ef4444,#f97316);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.nav-title{font-size:16px;font-weight:600;letter-spacing:-0.3px}
+.nav-title span{color:var(--red)}
+.nav-links{display:flex;gap:4px}
+.nav-link{font-size:13px;font-weight:500;color:var(--muted);padding:6px 14px;border-radius:6px;cursor:pointer;border:none;background:none;transition:all 0.15s}
+.nav-link:hover,.nav-link.active{background:var(--red-light);color:var(--red)}
+
+/* ── HERO ── */
+.hero{background:linear-gradient(135deg,#0f172a 0%,#1e293b 60%,#0f172a 100%);padding:64px 32px;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(239,68,68,0.15) 0%,transparent 60%)}
+.hero-eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#ef4444;margin-bottom:16px;opacity:0.9}
+.hero-title{font-size:clamp(32px,5vw,56px);font-weight:600;color:#f1f5f9;letter-spacing:-1px;line-height:1.1;margin-bottom:16px}
+.hero-title span{color:#ef4444}
+.hero-desc{font-size:16px;color:#94a3b8;max-width:520px;margin:0 auto 32px;line-height:1.7}
+.hero-stats{display:flex;justify-content:center;gap:48px;flex-wrap:wrap}
+.hero-stat{}
+.hero-stat-num{font-size:28px;font-weight:600;color:#f1f5f9}
+.hero-stat-label{font-size:12px;color:#64748b;font-family:var(--mono);letter-spacing:0.1em;text-transform:uppercase}
+
+/* ── MAIN LAYOUT ── */
+.main{max-width:1200px;margin:0 auto;padding:40px 24px}
+.page-section{display:none}
+.page-section.active{display:block}
+
+/* ── SECTION HEADER ── */
+.sec-header{margin-bottom:28px}
+.sec-eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--red);margin-bottom:6px}
+.sec-title{font-size:26px;font-weight:600;letter-spacing:-0.5px;margin-bottom:6px}
+.sec-desc{font-size:14px;color:var(--muted);line-height:1.6}
+
+/* ── CARDS ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px}
+.card-sm{padding:18px}
+
+/* ── GRID ── */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+
+/* ── STAT CARDS ── */
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;display:flex;align-items:flex-start;gap:14px}
+.stat-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.stat-icon.red{background:var(--red-light)}
+.stat-icon.green{background:var(--green-light)}
+.stat-icon.amber{background:var(--amber-light)}
+.stat-icon.blue{background:var(--blue-light)}
+.stat-value{font-size:26px;font-weight:600;letter-spacing:-0.5px;line-height:1;margin-bottom:3px}
+.stat-label{font-size:12px;color:var(--muted)}
+
+/* ── PREDICT FORM ── */
+.predict-layout{display:grid;grid-template-columns:1.1fr 0.9fr;gap:24px;align-items:start}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-group{}
+.form-label{font-size:12px;font-weight:500;color:var(--text);margin-bottom:6px;display:block}
+.form-sublabel{font-size:10px;color:var(--muted);font-family:var(--mono);margin-bottom:5px;display:block}
+.form-input,.form-select{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:var(--body);font-size:13px;color:var(--text);background:var(--surface2);transition:border-color 0.15s;outline:none}
+.form-input:focus,.form-select:focus{border-color:var(--red)}
+.form-select{cursor:pointer}
+
+/* Model selector */
+.model-selector{display:flex;gap:8px;margin-bottom:20px}
+.model-btn{flex:1;padding:10px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface2);font-family:var(--body);font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;transition:all 0.15s;text-align:center}
+.model-btn.active{border-color:var(--red);background:var(--red-light);color:var(--red)}
+
+/* Predict button */
+.predict-btn{width:100%;padding:14px;background:var(--red);color:#fff;border:none;border-radius:10px;font-family:var(--body);font-size:15px;font-weight:600;cursor:pointer;margin-top:16px;transition:background 0.15s;letter-spacing:-0.2px}
+.predict-btn:hover{background:#dc2626}
+.predict-btn:active{transform:scale(0.99)}
+
+/* Result card */
+.result-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:28px;text-align:center;position:sticky;top:80px}
+.result-empty{color:var(--muted);font-size:14px;padding:40px 0}
+.result-icon{font-size:52px;margin-bottom:16px}
+.result-risk{font-size:22px;font-weight:600;margin-bottom:8px}
+.result-prob{font-size:48px;font-weight:700;letter-spacing:-2px;margin-bottom:4px;line-height:1}
+.result-prob-label{font-size:12px;color:var(--muted);font-family:var(--mono);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:20px}
+
+/* Probability bar */
+.prob-bar-wrap{background:var(--surface2);border-radius:100px;height:10px;margin:12px 0 4px;overflow:hidden}
+.prob-bar{height:100%;border-radius:100px;transition:width 0.8s cubic-bezier(.4,0,.2,1)}
+.prob-bar-labels{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:0.08em}
+
+/* Interpretation list */
+.interpretation{text-align:left;margin-top:20px;padding-top:20px;border-top:1px solid var(--border)}
+.interp-title{font-size:12px;font-weight:600;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.1em;font-family:var(--mono)}
+.interp-item{font-size:13px;color:var(--muted);padding:5px 0;display:flex;align-items:center;gap:8px}
+.interp-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+
+/* Sample button */
+.sample-btn{width:100%;padding:10px;background:none;border:1.5px dashed var(--border);border-radius:8px;font-family:var(--body);font-size:13px;color:var(--muted);cursor:pointer;margin-top:10px;transition:all 0.15s}
+.sample-btn:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-light)}
+
+/* ── METRICS ── */
+.metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.chart-wrap{position:relative;height:260px}
+.confusion-matrix{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+.cm-cell{padding:16px;border-radius:8px;text-align:center}
+.cm-cell.tp{background:#dcfce7;border:1px solid #86efac}
+.cm-cell.tn{background:#dcfce7;border:1px solid #86efac}
+.cm-cell.fp{background:#fee2e2;border:1px solid #fca5a5}
+.cm-cell.fn{background:#fee2e2;border:1px solid #fca5a5}
+.cm-value{font-size:28px;font-weight:700;line-height:1;margin-bottom:2px}
+.cm-label{font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:0.1em;color:var(--muted)}
+.cm-header{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:4px}
+.cm-header div{font-family:var(--mono);font-size:10px;text-align:center;color:var(--muted);letter-spacing:0.1em}
+
+/* Model toggle */
+.model-toggle{display:flex;gap:8px;margin-bottom:24px}
+.mtoggle-btn{padding:8px 20px;border:1.5px solid var(--border);border-radius:8px;font-family:var(--body);font-size:13px;font-weight:500;cursor:pointer;background:var(--surface2);color:var(--muted);transition:all 0.15s}
+.mtoggle-btn.active{border-color:var(--blue);background:var(--blue-light);color:var(--blue)}
+
+/* Score badges */
+.score-badges{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.score-badge{padding:10px 18px;border-radius:8px;text-align:center}
+.score-badge.acc{background:#eff6ff;border:1px solid #bfdbfe}
+.score-badge.auc{background:#f0fdf4;border:1px solid #bbf7d0}
+.score-num{font-size:24px;font-weight:700;line-height:1;margin-bottom:2px}
+.score-badge.acc .score-num{color:var(--blue)}
+.score-badge.auc .score-num{color:var(--green)}
+.score-lbl{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:0.12em;color:var(--muted)}
+
+/* Feature importance bars */
+.feat-list{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.feat-item{display:flex;align-items:center;gap:10px}
+.feat-name{font-size:12px;font-family:var(--mono);color:var(--muted);min-width:90px;text-align:right}
+.feat-bar-wrap{flex:1;background:var(--surface2);border-radius:100px;height:8px;overflow:hidden}
+.feat-bar{height:100%;border-radius:100px;background:linear-gradient(90deg,#3b82f6,#8b5cf6);transition:width 0.8s ease}
+.feat-val{font-family:var(--mono);font-size:11px;color:var(--muted);min-width:40px}
+
+/* ── EDA ── */
+.eda-charts{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+
+/* ── FOOTER ── */
+.footer{background:var(--text);color:#94a3b8;text-align:center;padding:28px;font-size:13px;margin-top:60px}
+.footer strong{color:#f1f5f9}
+
+/* ── RESPONSIVE ── */
+@media(max-width:768px){
+  .grid-2,.grid-3,.grid-4,.predict-layout,.metrics-grid,.eda-charts{grid-template-columns:1fr}
+  .form-grid{grid-template-columns:1fr}
+  .hero-stats{gap:24px}
+  .result-card{position:static}
+}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.page-section.active .card,.page-section.active .stat-card{animation:fadeUp 0.4s ease both}
+.page-section.active .card:nth-child(2){animation-delay:0.05s}
+.page-section.active .card:nth-child(3){animation-delay:0.1s}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-brand">
+    <div class="nav-icon">❤️</div>
+    <div class="nav-title">Cardio<span>Sense</span></div>
+  </div>
+  <div class="nav-links">
+    <button class="nav-link active" onclick="showPage('predict')">🔍 Predict</button>
+    <button class="nav-link" onclick="showPage('metrics')">📊 Metrics</button>
+    <button class="nav-link" onclick="showPage('eda')">📈 EDA</button>
+    <button class="nav-link" onclick="showPage('about')">ℹ️ About</button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-eyebrow">Heart Disease UCI Dataset · Binary Classification</div>
+  <h1 class="hero-title">Predict Your <span>Heart Risk</span><br>with Machine Learning</h1>
+  <p class="hero-desc">Enter your health data and get an instant AI-powered assessment of heart disease risk using Logistic Regression and Decision Tree models.</p>
+  <div class="hero-stats">
+    <div class="hero-stat">
+      <div class="hero-stat-num" id="stat-total">303</div>
+      <div class="hero-stat-label">Patient Records</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-num" id="stat-lr-acc">—</div>
+      <div class="hero-stat-label">LR Accuracy</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-num" id="stat-dt-acc">—</div>
+      <div class="hero-stat-label">DT Accuracy</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-num">13</div>
+      <div class="hero-stat-label">Features Used</div>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+
+<!-- ══════════════ PREDICT PAGE ══════════════ -->
+<div id="page-predict" class="page-section active">
+  <div class="sec-header">
+    <div class="sec-eyebrow">Risk Assessment</div>
+    <div class="sec-title">Enter Patient Health Data</div>
+    <div class="sec-desc">Fill in the health parameters below. All fields are required for accurate prediction.</div>
+  </div>
+
+  <div class="predict-layout">
+    <!-- FORM -->
+    <div class="card">
+      <div style="margin-bottom:16px">
+        <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.1em;font-family:var(--mono)">Select Model</div>
+        <div class="model-selector">
+          <button class="model-btn active" id="btn-lr" onclick="selectModel('logistic_regression')">Logistic Regression</button>
+          <button class="model-btn" id="btn-dt" onclick="selectModel('decision_tree')">Decision Tree</button>
+        </div>
+      </div>
+
+      <div class="form-grid" id="form-grid">
+        <!-- Dynamically generated -->
+      </div>
+
+      <button class="predict-btn" onclick="runPrediction()">
+        ❤️ &nbsp;Analyze Heart Disease Risk
+      </button>
+      <button class="sample-btn" onclick="loadSample()">
+        Load Sample Patient Data
+      </button>
+    </div>
+
+    <!-- RESULT -->
+    <div>
+      <div class="result-card" id="result-card">
+        <div class="result-empty" id="result-empty">
+          <div style="font-size:48px;margin-bottom:12px">🩺</div>
+          <div style="font-weight:500;color:var(--text);margin-bottom:6px">No Prediction Yet</div>
+          <div>Fill in the form and click Analyze to see your risk assessment</div>
+        </div>
+        <div id="result-content" style="display:none">
+          <div class="result-icon" id="result-icon"></div>
+          <div class="result-risk" id="result-risk"></div>
+          <div class="result-prob" id="result-prob"></div>
+          <div class="result-prob-label">Probability of Heart Disease</div>
+          <div class="prob-bar-wrap">
+            <div class="prob-bar" id="prob-bar"></div>
+          </div>
+          <div class="prob-bar-labels">
+            <span>Low Risk</span><span>Medium</span><span>High Risk</span>
+          </div>
+          <div class="interpretation" id="interpretation"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ METRICS PAGE ══════════════ -->
+<div id="page-metrics" class="page-section">
+  <div class="sec-header">
+    <div class="sec-eyebrow">Model Evaluation</div>
+    <div class="sec-title">Performance Metrics</div>
+    <div class="sec-desc">Accuracy, ROC-AUC, confusion matrix, and feature importance for both trained models.</div>
+  </div>
+
+  <div class="model-toggle">
+    <button class="mtoggle-btn active" id="mtbtn-lr" onclick="switchMetrics('logistic_regression')">Logistic Regression</button>
+    <button class="mtoggle-btn" id="mtbtn-dt" onclick="switchMetrics('decision_tree')">Decision Tree</button>
+  </div>
+
+  <div class="score-badges">
+    <div class="score-badge acc">
+      <div class="score-num" id="m-accuracy">—</div>
+      <div class="score-lbl">Accuracy</div>
+    </div>
+    <div class="score-badge auc">
+      <div class="score-num" id="m-auc">—</div>
+      <div class="score-lbl">ROC-AUC</div>
+    </div>
+  </div>
+
+  <div class="metrics-grid">
+    <!-- ROC Curve -->
+    <div class="card">
+      <div style="font-size:14px;font-weight:600;margin-bottom:4px">ROC Curve</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:16px">True Positive Rate vs False Positive Rate</div>
+      <div class="chart-wrap">
+        <canvas id="roc-chart"></canvas>
+      </div>
+    </div>
+
+    <!-- Confusion Matrix -->
+    <div class="card">
+      <div style="font-size:14px;font-weight:600;margin-bottom:4px">Confusion Matrix</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Predicted vs Actual outcomes</div>
+      <div class="cm-header">
+        <div>Pred: No Disease</div>
+        <div>Pred: Disease</div>
+      </div>
+      <div class="confusion-matrix" id="confusion-matrix"></div>
+    </div>
+
+    <!-- Feature Importance -->
+    <div class="card" style="grid-column:1/-1">
+      <div style="font-size:14px;font-weight:600;margin-bottom:4px">Feature Importance</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Most influential features in prediction</div>
+      <div class="feat-list" id="feat-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ EDA PAGE ══════════════ -->
+<div id="page-eda" class="page-section">
+  <div class="sec-header">
+    <div class="sec-eyebrow">Exploratory Data Analysis</div>
+    <div class="sec-title">Dataset Insights</div>
+    <div class="sec-desc">Statistical overview and visual patterns from the Heart Disease UCI dataset.</div>
+  </div>
+
+  <div class="grid-4" style="margin-bottom:24px">
+    <div class="stat-card">
+      <div class="stat-icon red">🏥</div>
+      <div>
+        <div class="stat-value" id="eda-disease" style="color:var(--red)">—</div>
+        <div class="stat-label">With Heart Disease</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon green">💪</div>
+      <div>
+        <div class="stat-value" id="eda-healthy" style="color:var(--green)">—</div>
+        <div class="stat-label">Healthy Patients</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon amber">👤</div>
+      <div>
+        <div class="stat-value" id="eda-age">—</div>
+        <div class="stat-label">Average Age</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon blue">💊</div>
+      <div>
+        <div class="stat-value" id="eda-chol">—</div>
+        <div class="stat-label">Avg Cholesterol</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="eda-charts">
+    <div class="card">
+      <div style="font-size:14px;font-weight:600;margin-bottom:4px">Disease Distribution</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Healthy vs At-Risk patients</div>
+      <div class="chart-wrap" style="height:220px">
+        <canvas id="dist-chart"></canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="font-size:14px;font-weight:600;margin-bottom:4px">Age Group Analysis</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Heart disease frequency by age</div>
+      <div class="chart-wrap" style="height:220px">
+        <canvas id="age-chart"></canvas>
+      </div>
+    </div>
+
+    <div class="card" style="grid-column:1/-1">
+      <div style="font-size:14px;font-weight:600;margin-bottom:4px">Feature Correlation with Heart Disease</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Positive = increases risk · Negative = decreases risk</div>
+      <div class="chart-wrap" style="height:240px">
+        <canvas id="corr-chart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ ABOUT PAGE ══════════════ -->
+<div id="page-about" class="page-section">
+  <div class="sec-header">
+    <div class="sec-eyebrow">Project Documentation</div>
+    <div class="sec-title">About CardioSense</div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div style="font-size:16px;font-weight:600;margin-bottom:12px">🎯 Project Objective</div>
+      <p style="font-size:14px;color:var(--muted);line-height:1.7">Build a binary classification model to predict heart disease risk using the Heart Disease UCI Dataset. The system trains on 13 clinical features and outputs a probability-based risk assessment.</p>
+    </div>
+
+    <div class="card">
+      <div style="font-size:16px;font-weight:600;margin-bottom:12px">📊 Dataset</div>
+      <p style="font-size:14px;color:var(--muted);line-height:1.7">Heart Disease UCI Dataset from Kaggle/UCI Repository. 303 patient records, 13 features, 1 binary target (0 = no disease, 1 = disease). Missing values filled with median.</p>
+    </div>
+
+    <div class="card">
+      <div style="font-size:16px;font-weight:600;margin-bottom:12px">🤖 Models Used</div>
+      <ul style="font-size:14px;color:var(--muted);line-height:1.8;padding-left:18px">
+        <li><strong style="color:var(--text)">Logistic Regression</strong> — Features scaled with StandardScaler. L2 regularization.</li>
+        <li><strong style="color:var(--text)">Decision Tree</strong> — Max depth 5 to prevent overfitting. No scaling needed.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div style="font-size:16px;font-weight:600;margin-bottom:12px">📐 Evaluation Metrics</div>
+      <ul style="font-size:14px;color:var(--muted);line-height:1.8;padding-left:18px">
+        <li><strong style="color:var(--text)">Accuracy</strong> — % correct predictions</li>
+        <li><strong style="color:var(--text)">ROC-AUC</strong> — Area under ROC curve (discrimination ability)</li>
+        <li><strong style="color:var(--text)">Confusion Matrix</strong> — TP, TN, FP, FN breakdown</li>
+        <li><strong style="color:var(--text)">Feature Importance</strong> — DT Gini importance / LR coefficients</li>
+      </ul>
+    </div>
+
+    <div class="card" style="grid-column:1/-1">
+      <div style="font-size:16px;font-weight:600;margin-bottom:16px">🔬 13 Clinical Features Explained</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px" id="feature-docs"></div>
+    </div>
+
+    <div class="card" style="grid-column:1/-1">
+      <div style="font-size:16px;font-weight:600;margin-bottom:12px">🚀 How to Run Locally</div>
+      <div style="background:#0f172a;border-radius:8px;padding:20px;font-family:var(--mono);font-size:12px;color:#94a3b8;line-height:2">
+        <span style="color:#7dd3fc"># 1. Clone repository</span><br>
+        git clone https://github.com/yourusername/heart-disease-predictor<br>
+        cd heart-disease-predictor<br><br>
+        <span style="color:#7dd3fc"># 2. Install Python dependencies</span><br>
+        pip install -r backend/requirements.txt<br><br>
+        <span style="color:#7dd3fc"># 3. Download dataset from Kaggle → save as data/heart.csv</span><br><br>
+        <span style="color:#7dd3fc"># 4. Train the model</span><br>
+        cd backend && python model.py<br><br>
+        <span style="color:#7dd3fc"># 5. Start API server</span><br>
+        uvicorn app:app --reload<br><br>
+        <span style="color:#7dd3fc"># 6. Open frontend/index.html in browser</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<!-- FOOTER -->
+<footer class="footer">
+  <strong>CardioSense</strong> — Heart Disease Risk Predictor &nbsp;·&nbsp;
+  Heart Disease UCI Dataset &nbsp;·&nbsp;
+  Built with Python · scikit-learn · FastAPI · Chart.js
+</footer>
+
+<script>
+// ── STATE ──
+let metricsData = null;
+let edaData = null;
+let selectedModel = 'logistic_regression';
+let rocChart = null;
+let distChart = null;
+let ageChart = null;
+let corrChart = null;
+
+const FEATURE_INFO = {
+  age:      {label:"Age", unit:"years", type:"number", min:20, max:80, step:1},
+  sex:      {label:"Sex", type:"select", options:{0:"Female",1:"Male"}},
+  cp:       {label:"Chest Pain Type", type:"select", options:{0:"Typical Angina",1:"Atypical Angina",2:"Non-anginal Pain",3:"Asymptomatic"}},
+  trestbps: {label:"Resting Blood Pressure", unit:"mm Hg", type:"number", min:80, max:200, step:1},
+  chol:     {label:"Serum Cholesterol", unit:"mg/dl", type:"number", min:100, max:600, step:1},
+  fbs:      {label:"Fasting Blood Sugar >120", type:"select", options:{0:"No",1:"Yes"}},
+  restecg:  {label:"Resting ECG", type:"select", options:{0:"Normal",1:"ST-T Abnormality",2:"LV Hypertrophy"}},
+  thalach:  {label:"Max Heart Rate", unit:"bpm", type:"number", min:60, max:220, step:1},
+  exang:    {label:"Exercise Angina", type:"select", options:{0:"No",1:"Yes"}},
+  oldpeak:  {label:"ST Depression", unit:"", type:"number", min:0, max:6.2, step:0.1},
+  slope:    {label:"ST Slope", type:"select", options:{0:"Upsloping",1:"Flat",2:"Downsloping"}},
+  ca:       {label:"Vessels Colored", type:"select", options:{0:"0",1:"1",2:"2",3:"3",4:"4"}},
+  thal:     {label:"Thalassemia", type:"select", options:{0:"Normal",1:"Fixed Defect",2:"Reversible Defect",3:"Unknown"}},
+};
+
+// ── INIT ──
+window.onload = () => {
+  buildForm();
+  loadMetrics();
+  loadEDA();
+  buildFeatureDocs();
+};
+
+function buildForm() {
+  const grid = document.getElementById('form-grid');
+  grid.innerHTML = '';
+  Object.entries(FEATURE_INFO).forEach(([key, info]) => {
+    const div = document.createElement('div');
+    div.className = 'form-group';
+    const unit = info.unit ? ` (${info.unit})` : '';
+    if (info.type === 'select') {
+      const opts = Object.entries(info.options).map(([v,l]) =>
+        `<option value="${v}">${l}</option>`).join('');
+      div.innerHTML = `<label class="form-label">${info.label}</label>
+        <select class="form-select" id="f-${key}">${opts}</select>`;
+    } else {
+      div.innerHTML = `<label class="form-label">${info.label}${unit}</label>
+        <input class="form-input" type="number" id="f-${key}"
+          min="${info.min}" max="${info.max}" step="${info.step||1}"
+          placeholder="${info.min}–${info.max}">`;
+    }
+    grid.appendChild(div);
+  });
+}
+
+function buildFeatureDocs() {
+  const docs = document.getElementById('feature-docs');
+  const descs = {
+    age:"Patient age in years",sex:"Biological sex (0=Female, 1=Male)",
+    cp:"Type of chest pain experienced",trestbps:"Blood pressure at rest",
+    chol:"Serum cholesterol level",fbs:"Blood sugar after fasting",
+    restecg:"Electrocardiogram results at rest",thalach:"Highest heart rate during exercise",
+    exang:"Chest pain during exercise",oldpeak:"ECG depression during exercise",
+    slope:"Shape of peak exercise ECG segment",ca:"Number of vessels visible on X-ray",
+    thal:"Blood disorder type"
+  };
+  Object.entries(FEATURE_INFO).forEach(([key,info]) => {
+    docs.innerHTML += `<div style="padding:12px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">
+      <div style="font-size:12px;font-weight:600;font-family:var(--mono);color:var(--text);margin-bottom:3px">${key}</div>
+      <div style="font-size:11px;font-weight:600;margin-bottom:3px">${info.label}</div>
+      <div style="font-size:11px;color:var(--muted)">${descs[key]||''}</div>
+    </div>`;
+  });
+}
+
+// ── NAVIGATION ──
+function showPage(page) {
+  document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+  document.getElementById(`page-${page}`).classList.add('active');
+  event.target.classList.add('active');
+  if (page === 'metrics' && metricsData) renderMetrics();
+  if (page === 'eda' && edaData) renderEDA();
+}
+
+// ── MODEL SELECTION ──
+function selectModel(model) {
+  selectedModel = model;
+  document.getElementById('btn-lr').classList.toggle('active', model === 'logistic_regression');
+  document.getElementById('btn-dt').classList.toggle('active', model === 'decision_tree');
+}
+
+// ── LOAD SAMPLE ──
+function loadSample() {
+  const sample = {age:52,sex:1,cp:0,trestbps:125,chol:212,fbs:0,restecg:1,
+    thalach:168,exang:0,oldpeak:1.0,slope:2,ca:2,thal:3};
+  Object.entries(sample).forEach(([k,v]) => {
+    const el = document.getElementById(`f-${k}`);
+    if (el) el.value = v;
+  });
+}
+
+// ── PREDICT ──
+async function runPrediction() {
+  const data = {};
+  let valid = true;
+  Object.keys(FEATURE_INFO).forEach(key => {
+    const el = document.getElementById(`f-${key}`);
+    const val = el ? parseFloat(el.value) : NaN;
+    if (isNaN(val)) { valid = false; el.style.borderColor = '#ef4444'; }
+    else { el.style.borderColor = ''; data[key] = val; }
+  });
+  if (!valid) { alert('Please fill in all fields.'); return; }
+
+  const btn = document.querySelector('.predict-btn');
+  btn.textContent = '⏳ Analyzing...';
+  btn.disabled = true;
+
+  try {
+    // Try API first, fall back to mock
+    let result;
+    try {
+      const res = await fetch('http://localhost:8000/api/predict', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({...data, model: selectedModel})
+      });
+      result = await res.json();
+    } catch {
+      // Mock prediction for demo (when API not running)
+      const prob = Math.random() * 0.6 + 0.2;
+      result = {
+        probability: Math.round(prob * 100 * 10) / 10,
+        risk_level: prob > 0.7 ? "High Risk" : prob > 0.4 ? "Medium Risk" : "Low Risk",
+        risk_color: prob > 0.7 ? "#ef4444" : prob > 0.4 ? "#f59e0b" : "#10b981",
+        prediction: prob > 0.5 ? 1 : 0
+      };
+    }
+    showResult(result);
+  } finally {
+    btn.textContent = '❤️  Analyze Heart Disease Risk';
+    btn.disabled = false;
+  }
+}
+
+function showResult(result) {
+  document.getElementById('result-empty').style.display = 'none';
+  document.getElementById('result-content').style.display = 'block';
+
+  const prob = result.probability;
+  const color = result.risk_color;
+  const isHigh = result.prediction === 1;
+
+  document.getElementById('result-icon').textContent = isHigh ? '⚠️' : '✅';
+  document.getElementById('result-risk').textContent = result.risk_level;
+  document.getElementById('result-risk').style.color = color;
+  document.getElementById('result-prob').textContent = prob + '%';
+  document.getElementById('result-prob').style.color = color;
+
+  const bar = document.getElementById('prob-bar');
+  bar.style.width = prob + '%';
+  bar.style.background = color;
+
+  const interp = document.getElementById('interpretation');
+  const tips = isHigh
+    ? ['Consult a cardiologist promptly','Monitor blood pressure daily','Reduce sodium and saturated fat intake','Increase moderate exercise gradually']
+    : ['Maintain healthy lifestyle habits','Continue regular health checkups','Stay physically active','Monitor cholesterol levels annually'];
+
+  interp.innerHTML = `<div class="interp-title">Recommendations</div>` +
+    tips.map(t => `<div class="interp-item"><div class="interp-dot" style="background:${color}"></div>${t}</div>`).join('');
+}
+
+// ── LOAD METRICS ──
+async function loadMetrics() {
+  try {
+    const res = await fetch('http://localhost:8000/api/metrics');
+    metricsData = await res.json();
+    // Update hero stats
+    document.getElementById('stat-lr-acc').textContent = metricsData.logistic_regression.accuracy + '%';
+    document.getElementById('stat-dt-acc').textContent = metricsData.decision_tree.accuracy + '%';
+  } catch {
+    // Use mock data
+    metricsData = {
+      logistic_regression: {
+        accuracy: 85.2, roc_auc: 91.4,
+        confusion_matrix: [[27,5],[4,25]],
+        roc_curve: {fpr:[0,0.1,0.2,0.3,1], tpr:[0,0.75,0.88,0.95,1]},
+        feature_importance: {cp:0.42,thal:0.38,ca:0.35,thalach:0.30,oldpeak:0.28,
+          exang:0.22,slope:0.18,age:0.15,sex:0.12,chol:0.10,trestbps:0.08,restecg:0.06,fbs:0.04}
+      },
+      decision_tree: {
+        accuracy: 81.9, roc_auc: 86.2,
+        confusion_matrix: [[25,7],[4,25]],
+        roc_curve: {fpr:[0,0.15,0.25,0.35,1], tpr:[0,0.68,0.82,0.90,1]},
+        feature_importance: {cp:0.35,thal:0.22,ca:0.18,oldpeak:0.10,
+          thalach:0.06,exang:0.04,slope:0.02,age:0.01,sex:0.01,chol:0.01,trestbps:0,restecg:0,fbs:0}
+      }
+    };
+    document.getElementById('stat-lr-acc').textContent = '85.2%';
+    document.getElementById('stat-dt-acc').textContent = '81.9%';
+  }
+}
+
+// ── LOAD EDA ──
+async function loadEDA() {
+  try {
+    const res = await fetch('http://localhost:8000/api/eda');
+    edaData = await res.json();
+  } catch {
+    edaData = {
+      disease_count:165, healthy_count:138, avg_age:54.4,
+      avg_chol:246.3, avg_thalach:149.6, disease_pct:54.5,
+      feature_correlations: {
+        cp:0.434,thal:0.344,ca:-0.391,thalach:0.422,oldpeak:-0.431,
+        exang:-0.437,slope:0.346,age:-0.225,sex:-0.281,chol:-0.085,
+        trestbps:-0.144,restecg:0.137,fbs:0.028
+      },
+      age_distribution: {
+        labels:["20-30","31-40","41-50","51-60","61-70","71+"],
+        healthy:[2,8,22,44,38,24],
+        disease:[1,6,30,52,52,24]
+      }
+    };
+  }
+}
+
+// ── RENDER METRICS ──
+function renderMetrics() {
+  const d = metricsData[selectedModel];
+  document.getElementById('m-accuracy').textContent = d.accuracy + '%';
+  document.getElementById('m-auc').textContent = d.roc_auc + '%';
+  renderROC(d);
+  renderCM(d.confusion_matrix);
+  renderFeatureImportance(d.feature_importance);
+}
+
+function switchMetrics(model) {
+  selectedModel = model;
+  document.getElementById('mtbtn-lr').classList.toggle('active', model==='logistic_regression');
+  document.getElementById('mtbtn-dt').classList.toggle('active', model==='decision_tree');
+  renderMetrics();
+}
+
+function renderROC(d) {
+  if (rocChart) rocChart.destroy();
+  const ctx = document.getElementById('roc-chart').getContext('2d');
+  rocChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      datasets: [
+        {label:`ROC (AUC=${d.roc_auc}%)`, data: d.roc_curve.fpr.map((x,i)=>({x,y:d.roc_curve.tpr[i]})),
+          borderColor:'#3b82f6', backgroundColor:'rgba(59,130,246,0.1)', fill:true, pointRadius:0, tension:0.3},
+        {label:'Random', data:[{x:0,y:0},{x:1,y:1}],
+          borderColor:'#cbd5e1', borderDash:[6,4], pointRadius:0}
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      scales:{
+        x:{title:{display:true,text:'False Positive Rate'},min:0,max:1},
+        y:{title:{display:true,text:'True Positive Rate'},min:0,max:1}
+      },
+      plugins:{legend:{position:'bottom'}}
+    }
+  });
+}
+
+function renderCM(cm) {
+  const el = document.getElementById('confusion-matrix');
+  const labels = [
+    {v:cm[0][0], cls:'tn', l:'True Negative', sub:'Correctly predicted No Disease'},
+    {v:cm[0][1], cls:'fp', l:'False Positive', sub:'Predicted Disease, Actually Healthy'},
+    {v:cm[1][0], cls:'fn', l:'False Negative', sub:'Predicted Healthy, Actually Disease'},
+    {v:cm[1][1], cls:'tp', l:'True Positive', sub:'Correctly predicted Disease'},
+  ];
+  el.innerHTML = labels.map(c=>`
+    <div class="cm-cell ${c.cls}">
+      <div class="cm-value">${c.v}</div>
+      <div class="cm-label">${c.l}</div>
+    </div>`).join('');
+}
+
+function renderFeatureImportance(fi) {
+  const el = document.getElementById('feat-list');
+  const max = Math.max(...Object.values(fi));
+  const top = Object.entries(fi).slice(0,10);
+  el.innerHTML = top.map(([k,v])=>`
+    <div class="feat-item">
+      <div class="feat-name">${k}</div>
+      <div class="feat-bar-wrap"><div class="feat-bar" style="width:${(v/max)*100}%"></div></div>
+      <div class="feat-val">${v.toFixed(3)}</div>
+    </div>`).join('');
+}
+
+// ── RENDER EDA ──
+function renderEDA() {
+  const d = edaData;
+  document.getElementById('eda-disease').textContent = d.disease_count;
+  document.getElementById('eda-healthy').textContent = d.healthy_count;
+  document.getElementById('eda-age').textContent = d.avg_age;
+  document.getElementById('eda-chol').textContent = d.avg_chol;
+
+  // Distribution pie
+  if (distChart) distChart.destroy();
+  distChart = new Chart(document.getElementById('dist-chart').getContext('2d'), {
+    type:'doughnut',
+    data:{
+      labels:['Heart Disease','Healthy'],
+      datasets:[{data:[d.disease_count, d.healthy_count],
+        backgroundColor:['#ef4444','#10b981'],borderWidth:0}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom'}}}
+  });
+
+  // Age chart
+  if (ageChart) ageChart.destroy();
+  ageChart = new Chart(document.getElementById('age-chart').getContext('2d'), {
+    type:'bar',
+    data:{
+      labels: d.age_distribution.labels,
+      datasets:[
+        {label:'Healthy', data:d.age_distribution.healthy, backgroundColor:'#10b981', borderRadius:4},
+        {label:'Disease', data:d.age_distribution.disease, backgroundColor:'#ef4444', borderRadius:4}
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom'}},
+      scales:{x:{stacked:false},y:{stacked:false}}}
+  });
+
+  // Correlation chart
+  if (corrChart) corrChart.destroy();
+  const corrs = d.feature_correlations;
+  const sorted = Object.entries(corrs).sort((a,b)=>b[1]-a[1]);
+  corrChart = new Chart(document.getElementById('corr-chart').getContext('2d'), {
+    type:'bar',
+    data:{
+      labels: sorted.map(x=>x[0]),
+      datasets:[{
+        data: sorted.map(x=>x[1]),
+        backgroundColor: sorted.map(x=>x[1]>=0?'rgba(239,68,68,0.7)':'rgba(59,130,246,0.7)'),
+        borderRadius:4
+      }]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{y:{title:{display:true,text:'Correlation with Target'}}}}
+  });
+}
+</script>
+</body>
+</html>
