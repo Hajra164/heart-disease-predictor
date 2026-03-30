@@ -15,6 +15,9 @@ Build a binary classification model to predict whether a person is at risk of he
 
 ---
 
+<img width="1815" height="847" alt="h" src="https://github.com/user-attachments/assets/0fc450df-d593-4571-b1f2-28dd73758e0e" />
+
+
 ## 📊 Dataset
 
 - **Source:** Heart Disease UCI Dataset (Kaggle / UCI Repository)
