@@ -1,4 +1,4 @@
-# ❤️ CardioSense — Heart Disease Risk Predictor
+#  CardioSense — Heart Disease Risk Predictor
 
 > A machine learning web application that predicts heart disease risk using clinical health data.
 
